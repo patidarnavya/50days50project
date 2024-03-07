@@ -1,49 +1,65 @@
-const progress = document.getElementById('progress')
-const prev = document.getElementById('prev')
-const next = document.getElementById('next')
-const circles = document.querySelectorAll('.circle')
+const API_URL = 'https://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&api_key=3fd2be6f0c70a2a598f084ddfb75487c&page=1'
+const IMG_PATH = 'https://image.tmdb.org/t/p/w1280'
+const SEARCH_API = 'https://api.themoviedb.org/3/search/movie?api_key=3fd2be6f0c70a2a598f084ddfb75487c&query="'
 
-let currentActive = 1
+const main = document.getElementById('main')
+const form = document.getElementById('form')
+const search = document.getElementById('search')
 
-next.addEventListener('click', () => {
-    currentActive++
+// Get initial movies
+getMovies(API_URL)
 
-    if(currentActive > circles.length) {
-        currentActive = circles.length
-    }
+async function getMovies(url) {
+    const res = await fetch(url)
+    const data = await res.json()
 
-    update()
-})
+    showMovies(data.results)
+}
 
-prev.addEventListener('click', () => {
-    currentActive--
+function showMovies(movies) {
+    main.innerHTML = ''
 
-    if(currentActive < 1) {
-        currentActive = 1
-    }
+    movies.forEach((movie) => {
+        const { title, poster_path, vote_average, overview } = movie
 
-    update()
-})
+        const movieEl = document.createElement('div')
+        movieEl.classList.add('movie')
 
-function update() {
-    circles.forEach((circle, idx) => {
-        if(idx < currentActive) {
-            circle.classList.add('active')
-        } else {
-            circle.classList.remove('active')
-        }
+        movieEl.innerHTML = `
+            <img src="${IMG_PATH + poster_path}" alt="${title}">
+            <div class="movie-info">
+          <h3>${title}</h3>
+          <span class="${getClassByRate(vote_average)}">${vote_average}</span>
+            </div>
+            <div class="overview">
+          <h3>Overview</h3>
+          ${overview}
+        </div>
+        `
+        main.appendChild(movieEl)
     })
+}
 
-    const actives = document.querySelectorAll('.active')
-
-    progress.style.width = (actives.length - 1) / (circles.length - 1) * 100 + '%'
-
-    if(currentActive === 1) {
-        prev.disabled = true
-    } else if(currentActive === circles.length) {
-        next.disabled = true
+function getClassByRate(vote) {
+    if(vote >= 8) {
+        return 'green'
+    } else if(vote >= 5) {
+        return 'orange'
     } else {
-        prev.disabled = false
-        next.disabled = false
+        return 'red'
     }
 }
+
+form.addEventListener('submit', (e) => {
+    e.preventDefault()
+
+    const searchTerm = search.value
+
+    if(searchTerm && searchTerm !== '') {
+        getMovies(SEARCH_API + searchTerm)
+
+        search.value = ''
+    } else {
+        window.location.reload()
+    }
+})
